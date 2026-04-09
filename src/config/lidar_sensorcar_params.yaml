@@ -1,0 +1,71 @@
+# Downsampling
+do_downsampling: false
+voxel_leaf_size: 0.05
+
+# PassThrough filter
+x_min: 2.0
+x_max: 50.0
+y_min: -25.0
+y_max: 35.0
+z_min: -2.5
+z_max: 5.0
+
+# Z-rotation
+apply_z_rotation: false
+z_rotation_degs: 0.0
+
+# Angle filtering
+use_angle_filter: true
+angle_min_degs: -45.0
+angle_max_degs: 45.0
+
+# Outlier removal
+stat_mean_k: 50
+stat_std_mul: 6.0
+
+# Lane plane & histogram threshold
+lane_plane_distance_threshold: 0.1
+lane_plane_max_iterations: 1000
+
+lane_intensity_threshold: 100.0
+
+# Lane constraints
+use_lane_y_constraint: true
+lane_y_min: -2.5
+lane_y_max: 6.0
+
+use_lane_y_check: true
+lane_line_max_y_range: 5.0
+lane_line_mean_y_min: -10.0
+lane_line_mean_y_max: 10.0
+lane_max_vertical_variation: 0.6
+
+# RANSAC line
+lane_max_lines: 5
+lane_line_distance_threshold: 0.1
+
+# Duplicate merging
+lane_line_duplicate_angle_cos: 0.995
+lane_line_duplicate_endpoint_thresh: 0.001
+
+# Pole plane
+pole_plane_distance_threshold: 0.3
+pole_plane_max_iterations: 1000
+
+# Clustering
+cluster_tolerance: 0.5
+cluster_min_size: 25
+cluster_max_size: 450
+
+# Cylinder
+cylinder_distance_threshold: 0.1
+cylinder_max_iterations: 2000
+cylinder_min_radius: 0.01
+cylinder_max_radius: 0.5
+cylinder_expansion_factor: 1.05
+cylinder_eps_angle: 0.261799   # 15° in radians
+cylinder_min_inliers: 10
+pole_min_height: 1.0
+pole_min_vertical_ratio: 2.0
+
+auto_percentile: 97.5

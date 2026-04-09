@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*~
+*.json
+
+# Data files (To avoid pushing large files)
+*.png
+*.jpg
+*.pcd
+test/data/
+test/results/
+
+# Build
+build/
+bin/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.a
+*.so
