@@ -196,7 +196,7 @@ void random_search(int search_count, float delta_x, float delta_y, float delta_z
                                                  g_extrinsic_current, g_camera_intrinsic);
     float update_counter = 0.0f;
 
-    std::default_random_engine generator((clock() - time(0)) / (double)CLOCKS_PER_SEC);
+    std::default_random_engine generator(std::random_device{}());
     std::uniform_real_distribution<double> x_range(-delta_x, delta_x);
     std::uniform_real_distribution<double> y_range(-delta_y, delta_y);
     std::uniform_real_distribution<double> z_range(-delta_z, delta_z);

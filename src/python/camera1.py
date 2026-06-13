@@ -14,18 +14,20 @@ import argparse
 
 # GLOBAL CONFIG
 
-MIN_REGION_AREA          = 100      
-MAX_GAP_BETWEEN_SEGMENTS = 100      
-SLOPE_DIFF_THRESHOLD     = 0.5      
+DEBUG = False
 
-POLE_SLOPE_THRESHOLD     = 3.0      
-PCA_RATIO_THRESHOLD      = 3.0      
+MIN_REGION_AREA          = 100
+MAX_GAP_BETWEEN_SEGMENTS = 100
+SLOPE_DIFF_THRESHOLD     = 0.5
+
+POLE_SLOPE_THRESHOLD     = 3.0
+PCA_RATIO_THRESHOLD      = 3.0
 MIN_LANE_SLOPE_THRESHOLD = 0.7
 
 VERTICAL_BAND_RATIO      = 0.3
 
 
-VP_ANG_THRESHOLD         = 40.0     
+VP_ANG_THRESHOLD         = 40.0
 
 
 # MORPHOLOGI
@@ -238,9 +240,10 @@ def extract_line_from_component(contour, mask_for_points, w, h):
 
 def detect_lanes_and_poles(mask):
     cleaned = morphological_cleanup(mask)
-    cv2.imshow("Step1: Cleaned Mask", cleaned)
-    cv2.waitKey(0)
-    cv2.destroyWindow("Step1: Cleaned Mask")
+    if DEBUG:
+        cv2.imshow("Step1: Cleaned Mask", cleaned)
+        cv2.waitKey(0)
+        cv2.destroyWindow("Step1: Cleaned Mask")
 
     h, w = cleaned.shape[:2]
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(cleaned, 8)
@@ -351,10 +354,13 @@ def on_mouse(event, x, y, flags, param):
             print("Click too far from any line.")
 
 def main():
+    global DEBUG
     parser = argparse.ArgumentParser(description='Detect lanes and poles and output endpoints')
     parser.add_argument('--image', required=True, help='Path to the input mask image')
     parser.add_argument('--output', required=True, help='Path for the output JSON endpoints')
+    parser.add_argument('--debug', action='store_true', help='Show intermediate visualisation windows')
     args = parser.parse_args()
+    DEBUG = args.debug
 
     image_path = args.image
     out_path   = args.output

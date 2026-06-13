@@ -17,6 +17,7 @@ Usage:
 
 
 import os
+import sys
 import json
 import cv2
 import numpy as np
@@ -187,6 +188,15 @@ def params_to_pose(p):
     from scipy.spatial.transform import Rotation as Rsc
     R = Rsc.from_euler('xyz', p[:3], degrees=False).as_matrix()
     return R, p[3:]
+
+def residuals(x, lanes_3d, lanes_2d, poles_3d, poles_2d, K):
+    R, t = params_to_pose(x)
+    res = []
+    for i in range(len(lanes_3d)):
+        res.append(infinite_line_distance_one_line(lanes_3d[i], lanes_2d[i], R, t, K))
+    for i in range(len(poles_3d)):
+        res.append(infinite_line_distance_one_line(poles_3d[i], poles_2d[i], R, t, K))
+    return np.array(res)
 
 def refine_pose(R_init, t_init, lanes_3d, lanes_2d, poles_3d, poles_2d, K):
     x0 = pose_to_params(R_init, t_init)
