@@ -30,9 +30,9 @@ Evaluated on both the KITTI benchmark and an in-house sensor rig ("sensorCar"), 
 
 | Metric | Result |
 |---|---|
-| Average end-to-end runtime | ~75 seconds |
+| Average end-to-end runtime | ~60 seconds |
 | Translation error (post-refinement) | ~10 cm |
-| Rotation error (post-refinement) | ~1.75° |
+| Rotation error (post-refinement) | ~1.5° |
 
 The refinement stage substantially closes the gap between the initial PnL estimate and ground truth, correcting misalignment especially visible on vertical features (poles, trees) and object edges at longer range:
 
