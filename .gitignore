@@ -11,6 +11,9 @@ __pycache__/
 test/data/
 test/results/
 
+# ...except README/documentation images
+!docs/images/*.png
+
 # Build
 build/
 bin/

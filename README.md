@@ -1,6 +1,10 @@
 # Automatic LiDAR Camera Calibration using Line Features in Road Scene
 
-A targetless automatic extrinsic calibration pipeline for LiDAR and camera sensors. Instead of a checkerboard or dedicated calibration target, the method extracts naturally occurring road scene features — **lane markings** and **vertical poles** — and uses them as shared line correspondences to estimate the sensor-to-sensor transformation.
+A targetless automatic extrinsic calibration pipeline for LiDAR and camera sensors. Instead of a checkerboard or dedicated calibration target, the method extracts naturally occurring road scene features (**lane markings** and **vertical poles**) and uses them as shared line correspondences to estimate the sensor-to-sensor transformation.
+
+<p align="center">
+  <img src="docs/images/flowchart.png" alt="Pipeline flowchart" width="600">
+</p>
 
 ---
 
@@ -8,34 +12,41 @@ A targetless automatic extrinsic calibration pipeline for LiDAR and camera senso
 
 The pipeline runs in five stages:
 
-```
-Camera Image + LiDAR Point Cloud
-         |
-         |-- [1] Lane Mask Generation  (DeepLab V3 + DenseCRF)
-         |         src/my_thesis_lane_mask/
-         |
-         |-- [2] 2D Line Detection     (PCA + vanishing point filter)
-         |         src/python/camera1.py
-         |
-         |-- [3] 3D Line Detection     (RANSAC plane + Otsu/percentile intensity + cylinder segmentation)
-         |         src/cpp/lidar  (binary)
-         |
-         |-- [4] PnL Estimation        (Perspective-n-Line via cvxPnPl, over permuted line pairs)
-         |         src/python/pipeline.py
-         |
-         `-- [5] Refinement            (random search maximising LiDAR overlap on lane/pole mask)
-                   src/cpp/refine  (binary)
-```
+**Stage 1 (Lane Mask):** DeepLab V3 produces a coarse road segmentation; a Conditional Random Field (CRF) sharpens boundaries to pixel-level accuracy.
 
-**Stage 1 — Lane Mask:** DeepLab V3 produces a coarse road segmentation; a Conditional Random Field (CRF) sharpens boundaries to pixel-level accuracy.
+**Stage 2 (2D Lines):** Connected components are extracted from the mask, PCA fits a line to each component, and a vanishing-point filter keeps only geometrically consistent lane and pole candidates.
 
-**Stage 2 — 2D Lines:** Connected components are extracted from the mask, PCA fits a line to each component, and a vanishing-point filter keeps only geometrically consistent lane and pole candidates.
+**Stage 3 (3D Lines):** The ground plane is segmented via RANSAC. Lane markings are isolated using an adaptive intensity threshold (max of Otsu's method and the 97.5th percentile of the ground plane point cloud). Poles are detected above the ground plane using Euclidean clustering followed by cylinder model fitting.
 
-**Stage 3 — 3D Lines:** The ground plane is segmented via RANSAC. Lane markings are isolated using an adaptive intensity threshold (max of Otsu's method and the 97.5th percentile of the ground plane point cloud). Poles are detected above the ground plane using Euclidean clustering followed by cylinder model fitting.
+**Stage 4 (PnL Estimation):** Matched 2D-3D line pairs are fed to the [cvxPnPl](https://github.com/cvlab-epfl/cvxpnpl) convex solver. Candidate solutions are scored using an infinite-line reprojection error and the best valid pose is selected.
 
-**Stage 4 — PnL Estimation:** Matched 2D-3D line pairs are fed to the [cvxPnPl](https://github.com/cvlab-epfl/cvxpnpl) convex solver. Candidate solutions are scored using an infinite-line reprojection error and the best valid pose is selected.
+**Stage 5 (Refinement):** Starting from the PnL estimate, a multi-scale random search perturbs the 6-DOF pose and keeps updates that increase the fraction of LiDAR feature points landing on the lane/pole mask.
 
-**Stage 5 — Refinement:** Starting from the PnL estimate, a multi-scale random search perturbs the 6-DOF pose and keeps updates that increase the fraction of LiDAR feature points landing on the lane/pole mask.
+---
+
+## Results
+
+Evaluated on both the KITTI benchmark and an in-house sensor rig ("sensorCar"), across a range of urban driving scenes:
+
+| Metric | Result |
+|---|---|
+| Average end-to-end runtime | ~75 seconds |
+| Translation error (post-refinement) | ~10 cm |
+| Rotation error (post-refinement) | ~1.75° |
+
+The refinement stage substantially closes the gap between the initial PnL estimate and ground truth, correcting misalignment especially visible on vertical features (poles, trees) and object edges at longer range:
+
+<p align="center">
+  <img src="docs/images/refined_projection_result.png" alt="Refined calibration projected onto camera image, ground truth vs refined overlay" width="700">
+</p>
+
+*LiDAR points reprojected onto the camera image after refinement.*
+
+---
+
+## Limitations
+
+Calibration accuracy depends on the quality of the semantic segmentation mask: poor lighting, adverse weather, or low-contrast lane markings can degrade the mask and reduce accuracy downstream. Similarly, misclassification of scene elements (e.g. trees detected as poles) can introduce faulty line features into the pipeline.
 
 ---
 
@@ -91,18 +102,18 @@ make -j$(nproc)
 ```
 
 This produces two binaries inside `build/`:
-- `lidar` — runs 3D line detection on a point cloud
-- `refine` — runs mask-overlap refinement given an initial extrinsic estimate
+- `lidar`: runs 3D line detection on a point cloud
+- `refine`: runs mask-overlap refinement given an initial extrinsic estimate
 
 ---
 
 ## Running the Pipeline
 
-### Step 1 — Generate the lane mask
+### Step 1: Generate the lane mask
 
 See [`src/my_thesis_lane_mask/README.md`](src/my_thesis_lane_mask/README.md) for full instructions. The output is a binary PNG mask of lane markings and road boundaries.
 
-### Step 2 — Detect 2D lines from the mask
+### Step 2: Detect 2D lines from the mask
 
 ```bash
 python3 src/python/camera1.py \
@@ -114,7 +125,7 @@ An interactive window opens showing detected lines. Left-click to select the lin
 
 Add `--debug` to show intermediate processing windows.
 
-### Step 3 — Detect 3D lines from the point cloud
+### Step 3: Detect 3D lines from the point cloud
 
 ```bash
 ./src/cpp/build/lidar \
@@ -123,9 +134,9 @@ Add `--debug` to show intermediate processing windows.
     /path/to/output_dir
 ```
 
-Outputs `lane_markings.pcd`, `poles_detected.pcd`, `poles_and_lane_markings.pcd`, and `3d_endpoints.json` into the specified output directory. An interactive 3D viewer opens — click lines to record their 3D endpoints.
+Outputs `lane_markings.pcd`, `poles_detected.pcd`, `poles_and_lane_markings.pcd`, and `3d_endpoints.json` into the specified output directory. An interactive 3D viewer opens; click lines to record their 3D endpoints.
 
-### Step 4 & 5 — PnL estimation + refinement
+### Step 4 & 5: PnL estimation + refinement
 
 ```bash
 python3 src/python/pipeline.py \
